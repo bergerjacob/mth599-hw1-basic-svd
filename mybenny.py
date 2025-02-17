@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import umap
+import umap.umap_ as umap
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -49,7 +49,7 @@ criterion = nn.MSELoss()
 
 X = X.to(device)
 
-num_epochs = 30
+num_epochs = 6
 batch_size = 256
 for epoch in range(num_epochs):
     for i in range(0, X.shape[0], batch_size):
@@ -60,7 +60,7 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-    print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.4f}')
+    print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.9f}')
 
 # --- Extract Bottleneck Features ---
 with torch.no_grad():
