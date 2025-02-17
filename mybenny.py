@@ -4,8 +4,10 @@ import torch.optim as optim
 import umap.umap_ as umap
 import matplotlib.pyplot as plt
 import numpy as np
+from mpl_toolkits.mplot3d import Axes3D  # Import for 3D plotting
 
-# --- Autoencoder Definition (This is probably in some library but whatever...) ---
+
+# --- Autoencoder Definition ---
 class Autoencoder(nn.Module):
     def __init__(self, input_size, bottleneck_size=3):
         super(Autoencoder, self).__init__()
@@ -36,7 +38,7 @@ sz = X.shape[1:]
 X = X.reshape(X.shape[0], -1)
 X = X.float() / 255.
 
-# --- Device Configuration (GPU will be a lot faster if available) ---
+# --- Device Configuration ---
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
 
@@ -67,30 +69,43 @@ with torch.no_grad():
     bottleneck_features, _ = autoencoder(X)
 bottleneck_features = bottleneck_features.cpu().numpy()
 
-# --- UMAP on Bottleneck ---
-umap_obj = umap.UMAP(n_components=2, random_state=42, n_neighbors=50, min_dist=0.1)
-X_embedded = umap_obj.fit_transform(bottleneck_features)
+# --- UMAP on Bottleneck (3D) ---
+umap_obj_3d = umap.UMAP(n_components=3, random_state=42, n_neighbors=50, min_dist=0.1)
+X_embedded_3d = umap_obj_3d.fit_transform(bottleneck_features)
+
+# --- UMAP on Bottleneck (2D) ---
+umap_obj_2d = umap.UMAP(n_components=2, random_state=42, n_neighbors=50, min_dist=0.1)
+X_embedded_2d = umap_obj_2d.fit_transform(bottleneck_features)
+
 
 # --- Colormapping by Original Data Index ---
 colors = np.arange(X.shape[0])
 
-# --- Plotting ---
-plt.figure(figsize=(8, 6))
-plt.scatter(X_embedded[:, 0], X_embedded[:, 1], c=colors, cmap='winter', s=10)
-plt.colorbar(label='Data Index')
-plt.title("Autoencoder + UMAP (Colored by Data Index)")
-plt.savefig("after.eps")
-plt.show()
+# --- 2D and 3D Plotting (Simultaneous) ---
 
-# --- PCA for comparison---
-from sklearn.decomposition import PCA
-pca = PCA(n_components=2)
-X_pca = pca.fit_transform(X.cpu().detach().numpy())
+# Create figure and subplots
+fig = plt.figure(figsize=(16, 8))  # Larger figure for two subplots
+ax1 = fig.add_subplot(121)  # 1 row, 2 columns, first subplot (2D)
+ax2 = fig.add_subplot(122, projection='3d')  # 1 row, 2 columns, second subplot (3D)
 
-plt.figure(figsize=(8, 6))
-plt.scatter(X_pca[:, 0], X_pca[:, 1], s=10)
-plt.title("PCA")
-plt.savefig("before.eps")
+
+# 2D Plot
+ax1.scatter(X_embedded_2d[:, 0], X_embedded_2d[:, 1], c=colors, cmap='winter', s=10)
+ax1.set_title("Autoencoder + UMAP (2D)")
+cbar1 = fig.colorbar(plt.cm.ScalarMappable(cmap='winter'), ax=ax1) # Create colorbar from ScalarMappable
+cbar1.set_label('Data Index')
+
+
+
+# 3D Plot
+scatter = ax2.scatter(X_embedded_3d[:, 0], X_embedded_3d[:, 1], X_embedded_3d[:, 2], c=colors, cmap='winter', s=10)
+ax2.set_title("Autoencoder + UMAP (3D)")
+cbar2 = fig.colorbar(scatter, ax=ax2)
+cbar2.set_label('Data Index')
+
+# Adjust layout and display
+plt.tight_layout()  # Prevent overlapping titles/labels
+plt.savefig("combined_plot.eps")
 plt.show()
 
 print("Complete")
